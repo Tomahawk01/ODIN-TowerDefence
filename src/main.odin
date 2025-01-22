@@ -98,10 +98,12 @@ Tiles: [ROWS][COLS]TileID;
 
 Weapon :: struct
 {
+    level: i32,
     speed: f32,
+    size: f32,
     damage: i32,
     attackSpeed: f32,
-    attackDelay: f32,
+    attackTime: f32,
     projectileCount: i32
 };
 
@@ -110,7 +112,7 @@ Tower :: struct
     hp : i32,
     maxHP : i32,
     position: rl.Vector3,
-    range : i32,
+    range : f32,
     level: i32,
     weapons: [2]Weapon
 };
@@ -138,11 +140,11 @@ Enemy :: struct
 DEFAULT_ENEMY: Enemy:
 {
     level = 1,
-    hp = 100,
+    hp = 280,
     position = {-6, 1.5, 0},
     damage = 20,
     size = 0.2,
-    speed = 2,
+    speed = 0.3,
     gold = 20
 };
 
@@ -163,11 +165,11 @@ DEFAULT_STATE: GameState:
         hp = 100,
         maxHP = 100,
         position = {0, 0.2, 0},
-        range = 8,
+        range = 4,
         level = 1,
         weapons = {
-            {speed = 10, attackSpeed = 1.2, damage = 100, projectileCount = 1}, // Arrow
-            {speed = 10, attackSpeed = 0.8, damage = 200, projectileCount = 1} // Cannon ball
+            {level = 1, speed = 10, attackSpeed = 1.4, damage = 100, projectileCount = 1, size = 0.5}, // Arrow
+            {level = 1, speed = 10, attackSpeed = 0.8, damage = 200, projectileCount = 1, size = 0.5}  // Cannon ball
         }
     },
     gameTime = 0,
@@ -234,13 +236,14 @@ main :: proc()
 
             gridPosX: i32 = COLS / 2;
             gridPosY: i32 = ROWS / 2;
+            towerRange := i32(gameState.tower.range);
 
-            for row in gridPosY - gameState.tower.range..<gridPosY + gameState.tower.range
+            for row in gridPosY - towerRange..<gridPosY + towerRange
             {
-                for col in gridPosY - gameState.tower.range..<gridPosX + gameState.tower.range
+                for col in gridPosY - towerRange..<gridPosX + towerRange
                 {
                     dist := rl.Vector2Distance({f32(gridPosX), f32(gridPosY)}, {f32(col), f32(row)});
-                    if i32(math.round(dist)) > gameState.tower.range - 2
+                    if i32(math.round(dist)) > towerRange - 2
                     {
                         continue;
                     }
@@ -280,12 +283,13 @@ main :: proc()
             {
                 weaponIdx: i32 = 0;
                 weapon := &gameState.tower.weapons[weaponIdx];
-                if weapon.attackDelay < weapon.attackSpeed
+                attackDelay := 1 / weapon.attackSpeed;
+                if weapon.attackTime < attackDelay
                 {
-                    weapon.attackDelay += rl.GetFrameTime();
+                    weapon.attackTime += rl.GetFrameTime();
                 }
 
-                if weapon.attackDelay >= weapon.attackSpeed
+                if weapon.attackTime >= attackDelay
                 {
                     target: Enemy = {};
                     targetIdx: i32 = -1;
@@ -310,17 +314,17 @@ main :: proc()
                         proj: Projectile = {
                             weaponIdx = weaponIdx,
                             damage = weapon.damage,
-                            position = gameState.tower.position + dir * 2,
+                            position = gameState.tower.position + dir * 0.2,
                             direction = dir,
                             speed = weapon.speed,
-                            size = 1
+                            size = weapon.size
                         };
 
                         gameState.projectiles[gameState.projectileCount] = proj;
                         gameState.projectileCount += 1;
 
                         // Put weapon on CD
-                        gameState.tower.weapons[0].attackDelay -= gameState.tower.weapons[0].attackSpeed;
+                        weapon.attackTime -= attackDelay;
                     }
                 }
             }
@@ -372,11 +376,12 @@ main :: proc()
         {
             // Spawn system
             {
-                spawnFrequency := 1 / (1 + gameState.gameTime / 60);
+                spawnFrequency := 1 / (0.25 + gameState.gameTime / 100);
                 gameState.spawnTimer += rl.GetFrameTime();
                 enemySize := DEFAULT_ENEMY.size + DEFAULT_ENEMY.size * (gameState.gameTime / 100);
                 enemySpeed := DEFAULT_ENEMY.speed + DEFAULT_ENEMY.speed * (gameState.gameTime / 200);
-                gold := DEFAULT_ENEMY.gold + i32(gameState.gameTime / 50);
+                gold := DEFAULT_ENEMY.gold + i32(gameState.gameTime / 20);
+                hp := DEFAULT_ENEMY.hp + i32(gameState.gameTime * 0.5);
 
                 if gameState.spawnTimer >= spawnFrequency
                 {
@@ -390,6 +395,7 @@ main :: proc()
                     gameState.enemies[gameState.enemyCount].size = enemySize;
                     gameState.enemies[gameState.enemyCount].speed = enemySpeed;
                     gameState.enemies[gameState.enemyCount].gold = gold;
+                    gameState.enemies[gameState.enemyCount].hp = hp;
 
                     gameState.enemyCount += 1;
                     gameState.spawnTimer -= spawnFrequency;
@@ -417,6 +423,14 @@ main :: proc()
                     if (gameState.tower.hp <= 0)
                     {
                         gameState = DEFAULT_STATE;
+
+                        for row in 0..<ROWS
+                        {
+                            for col in 0..<COLS
+                            {
+                                Tiles[row][col] = .TILE_TREE_01;
+                            }
+                        }
                     }
                 }
             }
@@ -440,15 +454,47 @@ main :: proc()
 
         rl.EndMode3D();
 
+        rl.DrawFPS(SCREEN_WIDTH - 90, 10);
+
         // Draw HP bar
         hpBarSizeX: i32 = 400;
         hpBarSizeY: i32 = 40;
         hpPercent := f32(gameState.tower.hp) / f32(gameState.tower.maxHP);
         rl.DrawRectangle((SCREEN_WIDTH - hpBarSizeX) / 2.0, SCREEN_HEIGHT - hpBarSizeY - 10, hpBarSizeX, hpBarSizeY, rl.BLACK);
         rl.DrawRectangle((SCREEN_WIDTH - hpBarSizeX) / 2.0, SCREEN_HEIGHT - hpBarSizeY - 10, i32(f32(hpBarSizeX) * hpPercent), hpBarSizeY, rl.RED);
-
+        
         text := rl.TextFormat("Gold: %d", gameState.gold);
         rl.DrawText(text, 10, 10, 30, rl.YELLOW);
+
+        // UI
+        {
+            weapon := &gameState.tower.weapons[0];
+            weaponCost: i32 = 100 + weapon.level * 6;
+            if gameState.gold >= weaponCost
+            {
+                if rl.GuiButton({120, SCREEN_HEIGHT - 80, 90, 40}, "Arrow++")
+                {
+                    weapon.damage += 12;
+                    weapon.attackSpeed += 0.1;
+                    weapon.level += 1;
+                    gameState.gold -= weaponCost;
+                }
+            }
+
+            towerCost: i32 = 80 + gameState.tower.level * 16;
+            if gameState.gold >= towerCost
+            {
+                if rl.GuiButton({120, SCREEN_HEIGHT - 120, 90, 40}, "Tower++")
+                {
+                    gameState.tower.maxHP += 20;
+                    gameState.tower.hp += 22;
+                    gameState.tower.range += 0.5;
+                    gameState.tower.level += 1;
+
+                    gameState.gold -= towerCost;
+                }
+            }
+        }
         rl.EndDrawing();
     }
 
