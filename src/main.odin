@@ -239,6 +239,7 @@ main :: proc()
             gameState.gameTime += rl.GetFrameTime();
 
             lights[0].range = f32(gameState.tower.range);
+            lights[0].position.y = 2.5 + math.sin(1.1 * math.PI * gameState.gameTime) / 4;
 
             gridPosX: i32 = COLS / 2;
             gridPosY: i32 = ROWS / 2;
@@ -455,7 +456,7 @@ main :: proc()
         // Draw spheres to show where the lights are
         for i in 0..<MAX_LIGHTS
         {
-            rl.DrawSphereEx(lights[i].position, 0.2, 8, 8, lights[i].color);
+            rl.DrawSphereEx(lights[i].position, 0.2, 16, 16, lights[i].color);
         }
 
         rl.EndMode3D();
