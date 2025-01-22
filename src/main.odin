@@ -150,6 +150,7 @@ GameState :: struct
 {
     tower : Tower,
     gameTime: f32,
+    gold: i32,
     spawnTimer: f32,
     enemyCount: i32,
     enemies: [MAX_ENEMIES]Enemy,
@@ -349,6 +350,7 @@ main :: proc()
 
                             if enemy.hp <= 0
                             {
+                                gameState.gold += enemy.gold;
                                 // Remove enemy and copy over last enemy into slot
                                 gameState.enemies[enemyIdx] = gameState.enemies[gameState.enemyCount - 1];
                                 gameState.enemyCount -= 1;
@@ -374,6 +376,7 @@ main :: proc()
                 gameState.spawnTimer += rl.GetFrameTime();
                 enemySize := DEFAULT_ENEMY.size + DEFAULT_ENEMY.size * (gameState.gameTime / 100);
                 enemySpeed := DEFAULT_ENEMY.speed + DEFAULT_ENEMY.speed * (gameState.gameTime / 200);
+                gold := DEFAULT_ENEMY.gold + i32(gameState.gameTime / 50);
 
                 if gameState.spawnTimer >= spawnFrequency
                 {
@@ -386,6 +389,7 @@ main :: proc()
                     gameState.enemies[gameState.enemyCount].position.z = dir.y * f32(spawnRange);
                     gameState.enemies[gameState.enemyCount].size = enemySize;
                     gameState.enemies[gameState.enemyCount].speed = enemySpeed;
+                    gameState.enemies[gameState.enemyCount].gold = gold;
 
                     gameState.enemyCount += 1;
                     gameState.spawnTimer -= spawnFrequency;
@@ -443,9 +447,8 @@ main :: proc()
         rl.DrawRectangle((SCREEN_WIDTH - hpBarSizeX) / 2.0, SCREEN_HEIGHT - hpBarSizeY - 10, hpBarSizeX, hpBarSizeY, rl.BLACK);
         rl.DrawRectangle((SCREEN_WIDTH - hpBarSizeX) / 2.0, SCREEN_HEIGHT - hpBarSizeY - 10, i32(f32(hpBarSizeX) * hpPercent), hpBarSizeY, rl.RED);
 
-        rl.DrawFPS(10, 10);
-        text := rl.TextFormat("Camera Pos: %f, %f, %f", camera.position.x, camera.position.y, camera.position.z);
-        rl.DrawText(text, 10, 30, 20, rl.GRAY);
+        text := rl.TextFormat("Gold: %d", gameState.gold);
+        rl.DrawText(text, 10, 10, 30, rl.YELLOW);
         rl.EndDrawing();
     }
 
