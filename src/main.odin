@@ -179,6 +179,7 @@ main :: proc()
 {
     rl.SetConfigFlags({.VSYNC_HINT, .MSAA_4X_HINT});
     rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Tower Defence");
+    rl.InitAudioDevice();
     rl.SetTargetFPS(240);
 
     gameState: GameState;
@@ -199,6 +200,11 @@ main :: proc()
 
     lights: [MAX_LIGHTS]Light;
     lights[0] = CreateLight(.Point, { 0, 2, 0 }, { 6, 0, 0 }, rl.YELLOW, shader, 10.0);
+
+    // ------------------------------ Load Sounds ------------------------------
+    gameMusic := rl.LoadSound("assets/sounds/woodland_fantasy.ogg");
+    rl.PlaySound(gameMusic);
+    rl.SetSoundVolume(gameMusic, 0.4);
 
     // ------------------------------ Load Models ------------------------------
     tower := rl.LoadModel("assets/models/tower-round-crystals.glb");
@@ -499,5 +505,6 @@ main :: proc()
     }
 
     rl.UnloadModel(tower);
+    rl.CloseAudioDevice();
     rl.CloseWindow();
 }

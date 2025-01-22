@@ -4,7 +4,7 @@
         {
             "label": "Build",
             "type": "shell",
-            "command": "odin build ./src -out:TowerDefence.exe -o:speed -no-bounds-check",
+            "command": "odin build ./src -out:TowerDefence.exe -o:speed -no-bounds-check -subsystem:windows",
             "problemMatcher": "$msCompile",
             "group": {
                 "kind": "build",
