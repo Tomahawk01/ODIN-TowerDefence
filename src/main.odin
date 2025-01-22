@@ -145,7 +145,7 @@ DEFAULT_ENEMY: Enemy:
     damage = 20,
     size = 0.2,
     speed = 0.3,
-    gold = 20
+    gold = 25
 };
 
 GameState :: struct
@@ -168,8 +168,8 @@ DEFAULT_STATE: GameState:
         range = 4,
         level = 1,
         weapons = {
-            {level = 1, speed = 10, attackSpeed = 1.4, damage = 100, projectileCount = 1, size = 0.5}, // Arrow
-            {level = 1, speed = 10, attackSpeed = 0.8, damage = 200, projectileCount = 1, size = 0.5}  // Cannon ball
+            {level = 1, speed = 10, attackSpeed = 1.35, damage = 100, projectileCount = 1, size = 0.5}, // Arrow
+            {level = 1, speed = 10, attackSpeed = 0.8, damage = 200, projectileCount = 1, size = 0.5}   // Cannon ball
         }
     },
     gameTime = 0,
@@ -202,9 +202,9 @@ main :: proc()
     lights[0] = CreateLight(.Point, { 0, 2, 0 }, { 6, 0, 0 }, rl.YELLOW, shader, 10.0);
 
     // ------------------------------ Load Sounds ------------------------------
-    gameMusic := rl.LoadSound("assets/sounds/woodland_fantasy.ogg");
-    rl.PlaySound(gameMusic);
-    rl.SetSoundVolume(gameMusic, 0.4);
+    gameMusic := rl.LoadMusicStream("assets/sounds/woodland_fantasy.ogg");
+    rl.PlayMusicStream(gameMusic);
+    rl.SetMusicVolume(gameMusic, 0.4);
 
     // ------------------------------ Load Models ------------------------------
     tower := rl.LoadModel("assets/models/tower-round-crystals.glb");
@@ -234,6 +234,8 @@ main :: proc()
     // ------------------------------ Main game loop ------------------------------
     for !rl.WindowShouldClose()
     {
+        rl.UpdateMusicStream(gameMusic);
+
         // ------------------------------ Update game ------------------------------
         {
             gameState.gameTime += rl.GetFrameTime();
@@ -479,7 +481,7 @@ main :: proc()
             weaponCost: i32 = 100 + weapon.level * 6;
             if gameState.gold >= weaponCost
             {
-                if rl.GuiButton({120, SCREEN_HEIGHT - 80, 90, 40}, "Arrow++")
+                if rl.GuiButton({120, SCREEN_HEIGHT - 80, 90, 40}, "Arrow Upgrade")
                 {
                     weapon.damage += 12;
                     weapon.attackSpeed += 0.1;
@@ -491,7 +493,7 @@ main :: proc()
             towerCost: i32 = 80 + gameState.tower.level * 16;
             if gameState.gold >= towerCost
             {
-                if rl.GuiButton({120, SCREEN_HEIGHT - 120, 90, 40}, "Tower++")
+                if rl.GuiButton({120, SCREEN_HEIGHT - 120, 90, 40}, "Tower Upgrade")
                 {
                     gameState.tower.maxHP += 20;
                     gameState.tower.hp += 22;
@@ -506,6 +508,7 @@ main :: proc()
     }
 
     rl.UnloadModel(tower);
+    rl.UnloadMusicStream(gameMusic);
     rl.CloseAudioDevice();
     rl.CloseWindow();
 }
